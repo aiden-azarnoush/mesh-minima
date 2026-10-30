@@ -1,0 +1,16 @@
+const assert=require('node:assert/strict'),M=require('../optimizer.js');
+const tests=[];function test(name,fn){fn();tests.push(name)}
+test('parser precedence and powers',()=>{assert.equal(M.compile('-x^2 + 2^3^2')([3,0]),503);assert.equal(M.compile('sin(pi/2) + 2*x')([3,0]),7);assert.equal(M.compile('1e-3 + pow(x,2)')([2,0]),4.001)});
+test('parser rejects executable input, unknown symbols and wrong dimension',()=>{for(const s of ['window.alert(1)','constructor(x)','x;alert(1)','x y','z^2'])assert.throws(()=>M.compile(s))});
+test('derivatives and eigenvalues',()=>{const f=M.compile('x^2 + 3*y^2');const g=M.gradient(f,[1,2]);assert.ok(Math.abs(g[0]-2)<1e-6&&Math.abs(g[1]-12)<1e-6);const e=M.eigenvalues([[2,1],[1,2]]);assert.ok(Math.abs(e[0]-1)<1e-8&&Math.abs(e[1]-3)<1e-8)});
+for(const method of ['gd','cg','bfgs','newton'])test(method+' converges on anisotropic bowl',()=>{const r=M.optimize(M.compile('x^2+3*y^2'),[-3.1,2.6],{method,bound:4});assert.equal(r.status,'minimum');assert.ok(r.path.at(-1).f<1e-8);for(let i=1;i<r.path.length;i++)assert.ok(r.path[i].f<=r.path[i-1].f+1e-10)});
+for(const method of ['gd','cg','bfgs','newton'])test(method+' solves Himmelblau',()=>{const r=M.optimize(M.compile('(x^2+y-11)^2+(x+y^2-7)^2'),[-3.2,-1.8],{method,bound:5});console.log(method,r.status,r.path.length,r.path.at(-1).f);assert.equal(r.status,'minimum');assert.ok(r.path.at(-1).f<1e-7)});
+test('BFGS follows Rosenbrock valley',()=>{const r=M.optimize(M.compile('(1-x)^2+100*(y-x^2)^2'),[-1.5,1.8],{bound:2.5});assert.equal(r.status,'minimum');assert.ok(r.path.at(-1).f<1e-8)});
+test('3-variable quadratic',()=>{const r=M.optimize(M.compile('x^2+y^2+z^2',3),[-2.8,1.9,2.5],{bound:4});assert.equal(r.status,'minimum');assert.ok(M.norm(r.path.at(-1).x)<1e-6)});
+test('saddle, maximum and flat stationary point are not minima',()=>{assert.equal(M.optimize(M.compile('x^2-y^2'),[0,0]).status,'saddle');assert.equal(M.optimize(M.compile('-x^2-y^2'),[0,0]).status,'maximum');assert.equal(M.optimize(M.compile('x^4+y^4'),[0,0]).status,'stationary')});
+test('rapid oscillation does not receive a false minimum label',()=>{const f=M.compile('x^2+y^2+0.0001*sin(314159.2653589793*x)');assert.equal(M.optimize(f,[0,0]).status,'unreliable')});
+test('analytic gradients agree at smooth candidates',()=>{const f=M.compile('(x^2+y-11)^2+(x+y^2-7)^2');for(const method of ['gd','cg','bfgs','newton']){const r=M.optimize(f,[-3.2,-1.8],{method,bound:5}),[x,y]=r.path.at(-1).x;const gx=4*x*(x*x+y-11)+2*(x+y*y-7),gy=2*(x*x+y-11)+4*y*(x+y*y-7);assert.equal(r.status,'minimum');assert.ok(Math.hypot(gx,gy)<1e-5)}});
+test('unbounded descent stops at visible boundary',()=>assert.equal(M.optimize(M.compile('-x'),[0,0],{bound:3}).status,'boundary'));
+test('invalid starting point is reported',()=>assert.equal(M.optimize(M.compile('log(x)'),[-1,0]).status,'invalid'));
+test('multi-start discovers four Himmelblau minima',()=>{const f=M.compile('(x^2+y-11)^2+(x+y^2-7)^2');const out=[[-3,-3],[3,2],[-3,3],[3,-3]].map(x=>M.optimize(f,x,{bound:5}));assert.ok(out.every(r=>r.status==='minimum'));const keys=new Set(out.map(r=>r.path.at(-1).x.map(v=>v.toFixed(1)).join(',')));assert.equal(keys.size,4)});
+console.log('PASS: '+tests.length+' numerical checks');

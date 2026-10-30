@@ -1,0 +1,8 @@
+{
+  "name": "mesh-minima",
+  "version": "1.0.0",
+  "private": true,
+  "description": "An interactive mesh-based view of numerical optimization.",
+  "scripts": { "test": "node tests/optimizer.test.cjs" },
+  "license": "MIT"
+}

@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#f6f8fb"><meta name="description" content="An interactive optimization playground. Sculpt a function, choose a starting point, and watch gradient descent, conjugate gradient, BFGS, and Newton search a 3D mesh."><title>Mesh / Minima — Watch mathematics find its way.</title><link rel="stylesheet" href="style.css"><script defer src="optimizer.js"></script><script defer src="app.js"></script></head>
+<body>
+<header><div class="header-actions"><button id="theme" class="quiet" aria-pressed="false">☾ Dark mode</button><button id="aboutButton" class="quiet">How it works</button></div><h1>Mesh / Minima</h1><p class="subtitle">Choose a function, set a starting point, and watch the search find a minimum.</p></header>
+<main>
+<section class="workspace" aria-label="Optimization playground">
+<aside class="controls">
+<label for="preset">Example</label><select id="preset"><option value="bowl" selected>Bowl · Quadratic</option><option value="himmelblau">Four valleys · Himmelblau</option><option value="rosenbrock">Winding valley · Rosenbrock</option><option value="ripple">Ripples · Rastrigin</option><option value="saddle">Saddle</option><option value="sphere">Sphere · x² + y² + z²</option><option value="double3">Twin wells in space</option><option value="custom">Your own function</option></select>
+<select id="dimension" hidden aria-label="Automatically selected function dimension"><option value="2">Surface</option><option value="3">Space</option></select>
+<label for="expression">Function <span id="functionLabel">f(x, y)</span></label><textarea id="expression" rows="2" spellcheck="false" autocomplete="off">x^2 + 3*y^2</textarea><div class="syntax">Use ^ for powers and * to multiply. <button id="syntaxButton" class="text-button">Function guide</button></div>
+<button id="apply" class="outline apply">Update graph <span>↵</span></button><p id="error" class="error" role="alert"></p>
+<p id="dimensionHelp" class="helper">The mesh height shows the function value.</p><div class="divider"></div><label for="method">Search method</label>
+<label for="method" class="sr-only">Optimization method</label><select id="method"><option value="bfgs">BFGS</option><option value="cg">Conjugate gradient</option><option value="gd">Gradient descent</option><option value="newton">Damped Newton</option></select><p id="methodNote" class="helper"></p>
+<div class="start-label"><label>Starting point</label><button id="pick" class="text-button" aria-pressed="false">⌖ Pick on mesh</button></div>
+<div class="coordinate-grid"><label>x₀<input id="x0" type="number" value="-3.1" step="0.1" aria-label="Starting x"></label><label>y₀<input id="y0" type="number" value="2.6" step="0.1" aria-label="Starting y"></label><label id="zField" hidden>z₀<input id="z0" type="number" value="2.5" step="0.1" aria-label="Starting z"></label></div>
+<div class="run-actions"><button id="run" class="primary">▶ <span>Start</span></button><button id="reset" class="square" title="Reset the search" aria-label="Reset the search">↺</button></div>
+<details id="options" class="more-options"><summary>More options</summary><div class="options-content"><button id="multi" class="outline multi">Try 12 starting points</button><div class="field-row domain"><label for="bound">Plot range · ±</label><input id="bound" type="number" value="4" min="0.5" max="20" step="0.5"></div><div class="view-options"><button id="field" class="chip" aria-pressed="false">Downhill arrows</button><button id="curvature" class="chip" aria-pressed="false">Curvature colors</button><button id="guides" class="chip" aria-pressed="false">Axes &amp; grid</button></div><button id="export" class="text-button">Download search data ↓</button></div></details>
+</aside>
+<div class="visual-panel">
+<div class="visual-top"><span id="viewLabel">Drag to rotate · Scroll to zoom</span><div class="view-actions"><button id="rotateLeft" class="icon-button" aria-label="Rotate left" title="Rotate left">↶</button><button id="rotateRight" class="icon-button" aria-label="Rotate right" title="Rotate right">↷</button><button id="homeView" class="icon-button" aria-label="Reset camera" title="Reset camera">⌖</button></div></div>
+<div class="canvas-wrap"><canvas id="scene" aria-label="Drag to rotate the function mesh. The point follows the search toward a minimum." tabindex="0"></canvas><div class="scene-tag" hidden><span id="landscapeTag"></span></div><div class="scene-instructions" id="sceneInstructions"></div><div id="renderMessage" class="render-message" hidden></div></div>
+<div class="timeline-bar"><button id="play" class="play" aria-label="Play animation">▶</button><label for="timeline" class="sr-only">Animation position</label><input id="timeline" type="range" min="0" max="1000" value="0"><span id="stepCount">00 / 00</span><label class="speed-label">Speed<select id="speed"><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="2">2×</option><option value="4">4×</option></select></label></div>
+<div class="readout"><div class="status-block"><span class="metric-label">STATUS</span><strong id="status" aria-live="polite">Ready.</strong><span id="statusNote">Press Start to follow the point.</span></div><div><span class="metric-label">VALUE</span><strong id="value">—</strong><svg id="sparkline" viewBox="0 0 160 28" aria-label="Objective value along the search"></svg></div><div><span class="metric-label">POINT</span><strong id="position" class="coordinates">—</strong><span id="gradient">Gradient norm · —</span></div></div>
+<div id="multiResult" class="multi-results" hidden></div>
+</div>
+</section>
+<p class="local-note">The search looks for local minima. Different starting points can lead to different results; a global minimum is not guaranteed.</p>
+<footer>
+  Written by <b>Aiden Azarnoush</b><br>
+  <a href="https://github.com/aiden-azarnoush/mesh-minima"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M5.5 3 1 8l4.5 5 1-1L2.9 8l3.6-4zM10.5 3l-1 1L13.1 8l-3.6 4 1 1L15 8z"/></svg>source on GitHub</a>
+  <a href="https://github.com/aiden-azarnoush"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1zm0 1.5a5.5 5.5 0 1 1 0 11 5.5 5.5 0 0 1 0-11zM8 4a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zm0 6c-2 0-3.5 1-3.5 2v.3A5.5 5.5 0 0 0 8 13.5a5.5 5.5 0 0 0 3.5-1.2V12c0-1-1.5-2-3.5-2z"/></svg>all my repositories</a>
+  <a href="https://aiden-azarnoush.github.io"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1zm4.9 6h-2.1a11 11 0 0 0-.9-3.6A5.5 5.5 0 0 1 12.9 7zM8 2.5c.7.8 1.4 2.3 1.6 4.5H6.4c.2-2.2.9-3.7 1.6-4.5zM3.1 7a5.5 5.5 0 0 1 3-3.6c-.4 1-.7 2.3-.9 3.6H3.1zm0 2h2.1c.2 1.3.5 2.6.9 3.6A5.5 5.5 0 0 1 3.1 9zM8 13.5c-.7-.8-1.4-2.3-1.6-4.5h3.2c-.2 2.2-.9 3.7-1.6 4.5zm1.9-.9c.4-1 .7-2.3.9-3.6h2.1a5.5 5.5 0 0 1-3 3.6z"/></svg>aiden-azarnoush.github.io</a>
+  <div style="margin-top:6px">Found this useful? <a href="https://paypal.me/azarnoush">☕ Buy me a coffee</a> &nbsp;
+    <a href="https://paypal.me/azarnoush/3">$3</a> · <a href="https://paypal.me/azarnoush/5">$5</a> · <a href="https://paypal.me/azarnoush">other</a></div>
+</footer>
+</main>
+<dialog id="guide"><button id="closeGuide" class="close" aria-label="Close guide">×</button><div class="eyebrow">A LITTLE CONTEXT</div><h2>Follow the slope.<br>Understand the search.</h2><div id="guideContent"></div></dialog>
+</body></html>
