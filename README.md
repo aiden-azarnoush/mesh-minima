@@ -23,6 +23,7 @@ The footer follows the Plasticity Yield Criteria tool: author, source repository
 - **Three-variable level meshes:** enter `f(x,y,z)`, such as `x^2+y^2+z^2`, and see nested constant-value surfaces with a trajectory through coordinate space.
 - **Four algorithms:** gradient descent, nonlinear conjugate gradient (Polak–Ribière+), BFGS, and damped Newton.
 - **Choose the start:** type coordinates or select a nearby sampled point on the mesh.
+- **Arrows at the current point:** the orange arrow shows the actual accepted search step chosen by the method; the dashed blue arrow shows the negative gradient. The visible arrow lengths are scaled; the magnitude numbers below the mesh are in the function’s coordinate units.
 - **Optional downhill flow:** normalized negative-gradient arrows with moving tracers during playback.
 - **Optional curvature:** color by the Laplacian, `trace(H)`. This scalar alone is not a minimum test.
 - **Explore multiple minima:** launch 12 searches from deterministic starting points, group nearby candidate local minima, and inspect their coordinates and lowest candidate value.
@@ -30,7 +31,7 @@ The footer follows the Plasticity Yield Criteria tool: author, source repository
 - **Export:** download actual accepted optimizer steps as JSON.
 - Responsive layout, keyboard camera controls, and reduced-motion support.
 
-Built-in examples: an anisotropic quadratic, Himmelblau's four valleys, Rosenbrock, Rastrigin, a saddle, a three-variable quadratic, and three-variable twin wells.
+Built-in examples: an anisotropic quadratic, Himmelblau’s four valleys, Rosenbrock, Rastrigin, a saddle, a two-variable two-valley surface, a three-variable quadratic, and three-variable twin wells. The descriptions next to the example selector explain what each view represents.
 
 ## Open locally
 
@@ -93,17 +94,17 @@ A small recursive-descent parser evaluates a restricted expression grammar. User
 
 ## What the visualization means
 
-The mesh samples a continuous function. **The optimizers evaluate the continuous objective using numerical derivatives; they do not walk from mesh vertex to mesh vertex.** The point is animated between accepted steps. Its in-between positions are illustrative interpolation, not additional iterations.
+The mesh samples a continuous function. **The optimizers evaluate the continuous objective using numerical derivatives; they do not walk from mesh vertex to mesh vertex.** The point is animated between accepted steps. Its in-between positions are illustrative interpolation, not additional iterations. The dot and trail in the two-variable view are placed on the sampled mesh using bilinear height interpolation. Their numerical position and displayed objective value still come from the continuous function. The instantaneous gradient is evaluated at the interpolated coordinate; the method arrow remains the direction selected at the preceding accepted iterate until the next step.
 
-The two-variable height axis uses a monotonic `asinh` transform to make steep and shallow regions readable together. Optimization, displayed objective values, gradients, and curvature all use the original objective. Extreme heights and non-finite mesh samples are omitted. Three-variable geometry uses marching tetrahedra on a sampled grid and is approximate.
+The two-variable height axis uses a monotonic `asinh` transform to make steep and shallow regions readable together. Optimization, displayed objective values, gradients, and curvature all use the original objective. Extreme heights and non-finite mesh samples are omitted. Three-variable geometry uses marching tetrahedra on a sampled grid and is approximate. Its meshes are equal-value shells in coordinate space, so the point moves through them and need not lie on a shell.
 
-Arrows show normalized **negative gradients**, not BFGS or conjugate-gradient directions. Arrow length does not encode gradient magnitude. A trajectory, in contrast, follows the selected method's accepted steps.
+The orange arrow at the moving point shows the method’s actual accepted search direction and accepted step (including any restart and line search). It stays fixed in coordinate space during each animated step. The dashed blue arrow shows the instantaneous negative gradient at the displayed point. Arrows are projected onto the displayed surface and their lengths are compressed for readability; the gradient magnitude and accepted step length are displayed numerically. When the directions agree, the arrows are offset slightly so both remain visible. The optional field of small arrows shows normalized negative gradients across the landscape. A trajectory follows accepted steps.
 
 All methods use central finite-difference gradients and Armijo backtracking. Conjugate gradient uses PR+ with periodic and descent-direction restarts. BFGS updates an inverse-Hessian approximation with curvature safeguards. Newton uses finite-difference Hessians and shifts negative curvature before solving for a direction. Backtracking keeps accepted steps downhill; interpolated segments need not be monotonically downhill.
 
 A point is labeled a **possible local minimum** only when its estimated gradient norm is below `1e-5`, derivative estimates at several step sizes agree within a numerical threshold, and its estimated Hessian eigenvalues are positive above a relative threshold. These checks can reduce false confidence but are not a mathematical proof; an approximate stationary point need not itself be an exact local minimum. Saddles, maxima, inconsistent numerical derivatives, inconclusive stationary points, invalid regions, plot boundaries, stalled searches, and iteration limits receive distinct statuses. Flat true minima may be labeled inconclusive. The derivative-consistency check cannot detect every numerical error. Finite-difference tests are numerical evidence, not mathematical proofs.
 
-Searches stop at the displayed coordinate range. They do not claim a constrained boundary optimum. Expand the range when a search reaches the boundary. Multi-start exploration is not a global optimization guarantee; “lowest candidate value” refers only to candidate minima found by those 12 starts. Candidate locations within 0.03 coordinate units are grouped, so nearby distinct minima can be counted together.
+Searches stay inside the displayed coordinate range. A step may touch the edge and continue if the next search direction points inward; an infeasible direction can fall back to downhill before the search reports a boundary stop. They do not claim a constrained boundary optimum. Expand the range when a search reaches the boundary. Multi-start exploration is not a global optimization guarantee; “lowest candidate value” refers only to candidate minima found by those 12 starts. Candidate locations within 0.03 coordinate units are grouped, so nearby distinct minima can be counted together.
 
 Smooth functions work best. Nonsmooth functions, discontinuities, singularities, very different coordinate scales, and narrow basins can defeat these educational implementations. They are not a substitute for a scientific optimization library.
 

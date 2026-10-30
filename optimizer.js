@@ -45,20 +45,24 @@ function optimize(f,initial,{method='bfgs',bound=4,maxIterations=700,tolerance=1
  if(!Number.isFinite(fx)||!g.every(Number.isFinite))return{path,status:'invalid',method};
  if(x.some(v=>Math.abs(v)>bound))return{path,status:'boundary',method};
  for(let k=0;k<maxIterations;k++){
-  if(norm(g)<tolerance){status=classify(f,x,tolerance);break}let d=g.map(v=>-v);
+  if(norm(g)<tolerance){status=classify(f,x,tolerance);break}let d=g.map(v=>-v),directionSource=method==='cg'?(prevG?'restart':'initial'):method,beta=null;
   if(method==='bfgs')d=mv(B,g).map(v=>-v);
-  if(method==='cg'&&prevG&&k%x.length!==0){const beta=Math.max(0,dot(g,add(g,prevG,-1))/Math.max(dot(prevG,prevG),1e-30));d=add(d,prevD,beta)}
-  if(method==='newton'){const H=hessian(f,x),ev=eigenvalues(H),shift=Math.max(0,1e-3-ev[0]);for(let i=0;i<x.length;i++)H[i][i]+=shift;d=solve(H,g.map(v=>-v))||d}
-  if(!d.every(Number.isFinite)||dot(d,g)>=-1e-12*norm(d)*norm(g)){d=g.map(v=>-v);B=eye(x.length)}
-  let alpha=Math.min(method==='gd'?.18:method==='cg'?.5:1,bound*.7/Math.max(norm(d),1e-30)),edge=Infinity;
-  for(let i=0;i<x.length;i++)if(d[i]!==0)edge=Math.min(edge,((d[i]>0?bound:-bound)-x[i])/d[i]);
-  if(edge<1e-12){status='boundary';break}alpha=Math.min(alpha,edge);const slope=dot(g,d);let xn,fn,accepted=false;
+  if(method==='cg'&&prevG&&k%x.length!==0){beta=Math.max(0,dot(g,add(g,prevG,-1))/Math.max(dot(prevG,prevG),1e-30));d=add(d,prevD,beta);directionSource=beta>0?'conjugate':'zero-beta'}
+  if(method==='newton'){const H=hessian(f,x),ev=eigenvalues(H),shift=Math.max(0,1e-3-ev[0]);for(let i=0;i<x.length;i++)H[i][i]+=shift;const candidate=solve(H,g.map(v=>-v));if(candidate)d=candidate;else directionSource='fallback'}
+  if(!d.every(Number.isFinite)||dot(d,g)>=-1e-12*norm(d)*norm(g)){d=g.map(v=>-v);B=eye(x.length);directionSource='fallback'}
+  const edgeFor=direction=>{let limit=Infinity;for(let i=0;i<x.length;i++)if(direction[i]!==0)limit=Math.min(limit,((direction[i]>0?bound:-bound)-x[i])/direction[i]);return limit};
+  let edge=edgeFor(d);
+  if(edge<1e-12){const downhill=g.map(v=>-v),downhillEdge=edgeFor(downhill);if(downhillEdge>=1e-12){d=downhill;edge=downhillEdge;B=eye(x.length);directionSource='fallback'}}
+  if(edge<1e-12){status='boundary';break}
+  let alpha=Math.min(method==='gd'?.18:method==='cg'?.5:1,bound*.7/Math.max(norm(d),1e-30),edge);const slope=dot(g,d);let xn,fn,accepted=false;
   for(let j=0;j<45;j++){xn=add(x,d,alpha);fn=f(xn);if(Number.isFinite(fn)&&fn<=fx+1e-4*alpha*slope){accepted=true;break}alpha*=.5}
   if(!accepted||norm(add(xn,x,-1))<1e-13){status='stalled';break}
   const gn=gradient(f,xn);if(!gn.every(Number.isFinite)){status='invalid';break}
+  // Store the actual accepted direction and step at the iterate that chose them.
+  Object.assign(path[path.length-1],{gradient:g.slice(),direction:d.slice(),directionSource,beta,alpha,step:add(xn,x,-1)});
   if(method==='bfgs'){const s=add(xn,x,-1),y=add(gn,g,-1),ys=dot(y,s);if(ys>1e-12*norm(y)*norm(s)){const By=mv(B,y),yBy=dot(y,By);B=B.map((r,i)=>r.map((v,j)=>v+(1+yBy/ys)*s[i]*s[j]/ys-(s[i]*By[j]+By[i]*s[j])/ys))}else B=eye(x.length)}
   prevG=g;prevD=d;x=xn;fx=fn;g=gn;record();
-  if(x.some(v=>Math.abs(v)>=bound-1e-10)){status=norm(g)<tolerance?classify(f,x,tolerance):'boundary';break}
+  // A step reaching the plot edge can still be followed by an inward step.
  }
  if(status==='limit'&&norm(g)<tolerance)status=classify(f,x,tolerance);
  return{path,status,method};
